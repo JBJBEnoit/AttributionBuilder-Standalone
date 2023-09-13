@@ -12,7 +12,7 @@ which displays like this:
 
 >"[Open Initiative at Fanshawe College](https://ecampusontario.pressbooks.pub/fanshaweoerdesignstudio/chapter/open-initiative-at-fanshawe-college/)" from [The Journey to Open](https://ecampusontario.pressbooks.pub/fanshaweoerdesignstudio) by Fanshawe College is licensed under a [Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License](https://creativecommons.org/licenses/by-nc-sa/4.0/), except where otherwise noted.
 
-If the AttributionBuilder detects that the resource is neither in Pressbooks or OpenStax format, it will provide a set of input fields for entering the relevant data manually.
+If the AttributionBuilder detects that the resource is neither in Pressbooks nor OpenStax format, it will provide a set of input fields for entering the relevant data manually.
 
 Note that the output of AttributionBuilder is only as good as the information with which it is provided. Since the information is parsed from the document at the given URL, if this information is inaccurate, then the attribution string produced will be inaccurate also. It's a good practice when using AttributionBuilder with a new resource to pay special attention to the output, to ensure the authors of the resource have provided accurate and complete attribution information.
 
