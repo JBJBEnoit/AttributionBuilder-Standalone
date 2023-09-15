@@ -32,6 +32,7 @@ import java.awt.*;
 import java.awt.event.*;
 import org.jsoup.*;
 import org.jsoup.select.*;
+
 import org.jsoup.nodes.*;
 public class AttributionBuilder extends JFrame
 {
@@ -256,26 +257,15 @@ public class AttributionBuilder extends JFrame
 			{
 				copyStatusLbl.setText("");
 				String url = source.getText();
-				
-				Resource type = Resource.OTHER;
-				
-				if (url.contains("openstax"))
-				{
-					type = Resource.OPEN_STAX;
-				}
-				else if (url.contains("pressbooks"))
-				{
-					type = Resource.PRESSBOOKS;
-				}
-				
-				
+							
 				try
 				{
 					Document doc = Jsoup.connect(url).get();
 					Attribution attribution = new Attribution();
 					attribution.pageURL = url;
+					Resource type = setType(doc, url);
 					
-					if (type == Resource.PRESSBOOKS)
+					if (type == Resource.PRESSBOOKS || isPressbooks(doc))
 					{
 						if (manualInputFieldsVisible)
 						{
@@ -305,9 +295,16 @@ public class AttributionBuilder extends JFrame
 				}
 				catch(IOException ex)
 				{
+					if (!manualInputFieldsVisible)
+					{
+						manualInputFieldsVisible = toggleVisibility();
+					}
+					Attribution attribution = new Attribution();
+					attribution.pageURL = url;
+
+					buildManualAttribution(attribution);
 					ex.printStackTrace();
-				}
-				
+				}			
 			}
 			else if (ev.getSource() == copyBtn)
 			{
@@ -315,6 +312,37 @@ public class AttributionBuilder extends JFrame
 					.setContents(new StringSelection(attributionTxt.getText()), null);
 				copyStatusLbl.setText("Copied!");				
 			}		
+		}
+		
+		private Resource setType(Document doc, String url)
+		{
+			Resource type = Resource.OTHER;
+			
+			if (url.contains("openstax"))
+			{
+				type = Resource.OPEN_STAX;
+			}
+			else if (url.contains("pressbooks") || isPressbooks(doc))
+			{
+				type = Resource.PRESSBOOKS;
+			}
+			
+			return type;
+		}
+		
+		private boolean isPressbooks(Document doc)
+		{
+			Elements elements = doc.getAllElements();
+			
+			for (Element el : elements)
+			{
+				if (el.className().contains("pressbooks"))
+				{
+					return true;
+				}
+			}
+			
+			return false;		
 		}
 		
 		private boolean toggleVisibility()
