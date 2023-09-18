@@ -18,3 +18,7 @@ Attributions can be saved singly or in groups as projects, allowing them to be r
 
 Note that the output of AttributionBuilder is only as good as the information with which it is provided. Since the information is parsed from the document at the given URL, if this information is inaccurate, then the attribution string produced will be inaccurate also. It's a good practice when using AttributionBuilder with a new resource to pay special attention to the output, to ensure the authors of the resource have provided accurate and complete attribution information.
 
+## Dependencies
+- [GSon](https://github.com/google/gson)
+- [JSoup](https://jsoup.org)
+
