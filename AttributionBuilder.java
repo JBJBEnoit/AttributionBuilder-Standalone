@@ -23,9 +23,13 @@ THE SOFTWARE.
 !**/
 
 import java.io.*;
+import java.net.UnknownHostException;
+import java.util.Map.Entry;
+import java.util.TreeMap;
 import java.awt.datatransfer.StringSelection;
 import java.awt.Toolkit;
 import javax.swing.*;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.text.JTextComponent;
 
 import java.awt.*;
@@ -45,28 +49,36 @@ public class AttributionBuilder extends JFrame
 	JLabel sourceLbl, attrLabel, copyStatusLbl;
 	JTextArea attributionTxt;
 	JButton buildBtn, copyBtn;
-	JLabel pageTitleLabel, bookTitleLabel, bookUrlLabel, authorLabel, licenseTypeLabel, licenseUrlLabel;
-	JTextField bookTitleField, bookURLField, pageTitleField, authorField, licenseTypeField, licenseURLField;
-	JPanel bookTitleLblPanel, bookTitlePanel, pageTitleLblPanel, pageTitlePanel, bookUrlLblPanel, bookUrlPanel, authorLblPanel,
-		   authorPanel, licenseTypeLblPanel, licenseTypePanel, licenseUrlLblPanel, licenseUrlPanel;
+	JCheckBox autosaveChk;
+	
 	boolean manualInputFieldsVisible = false;
+	boolean autosave = true;
 
+	Project currentProject;
+	String currentProjectPath;
+	Attribution currentAttribution;
+	ProjectWindow projectWindow;
 	
 	public AttributionBuilder()
 	{
 		super("Attribution Builder");
 		
 		this.setDefaultCloseOperation(EXIT_ON_CLOSE);//destroy this object when close button is pressed
-		this.setSize(400, 415); //width and height in pixels
+		this.setSize(500, 415); //width and height in pixels
 		this.setLocationRelativeTo(null);//centers the JFrame on the screen.
 		Image icon = new ImageIcon(getClass().getResource("images/attribution_builder_icon.png")).getImage();
 		this.setIconImage(icon);
-		this.setLayout(new FlowLayout());
+		this.setLayout(new BorderLayout());
 		
+		currentProject = null;
+		currentProjectPath = null;
+		currentAttribution = null;
+		projectWindow = new ProjectWindow(null);
+		
+		JTabbedPane tabbedPane = new JTabbedPane();
 		
 		JPanel mainPanel = new JPanel();
-		mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
-		
+		mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));	
 		
 		Listener listener = new Listener(this);
 		
@@ -96,95 +108,34 @@ public class AttributionBuilder extends JFrame
 		
 		buildBtn.setPreferredSize(new Dimension(160, 40));
 		buildBtn.addActionListener(listener);
-		bBtnPanel.add(buildBtn);
 		
-		pageTitleLabel = new JLabel("Page Title:");
-		pageTitleLblPanel = new JPanel();
-		pageTitleLblPanel.add(pageTitleLabel);
-		pageTitleLblPanel.setVisible(false);
+		autosaveChk = new JCheckBox("Automatically save in project:");
+		autosaveChk.setSelected(true);
+		autosaveChk.setVisible(false);
+		autosaveChk.addItemListener(new ItemListener() {
+
+			@Override
+			public void itemStateChanged(ItemEvent e)
+			{
+				if (e.getStateChange() == ItemEvent.DESELECTED)
+				{
+					autosave = false;
+				}
+				else
+				{
+					autosave = true;
+				}			
+			}		
+		});
 		
-		pageTitleField = new JTextField();
-		pageTitleField.setColumns(30);
-		pageTitlePanel = new JPanel();
-		pageTitlePanel.add(pageTitleField);
-		pageTitlePanel.setVisible(false);
-		
-		bookTitleLabel = new JLabel("Book Title:");
-		bookTitleLblPanel = new JPanel();
-		bookTitleLblPanel.add(bookTitleLabel);
-		bookTitleLblPanel.setVisible(false);
-		
-		bookTitleField = new JTextField();
-		bookTitleField.setColumns(30);
-		bookTitlePanel = new JPanel();
-		bookTitlePanel.add(bookTitleField);
-		bookTitlePanel.setVisible(false);
-		
-		bookUrlLabel = new JLabel("Book URL:");
-		bookUrlLblPanel = new JPanel();
-		bookUrlLblPanel.add(bookUrlLabel);
-		bookUrlLblPanel.setVisible(false);
-		
-		bookURLField = new JTextField();
-		bookURLField.setColumns(30);
-		bookUrlPanel = new JPanel();
-		bookUrlPanel.add(bookURLField);
-		bookUrlPanel.setVisible(false);
-		
-		authorLabel = new JLabel("Author:");
-		authorLblPanel = new JPanel();
-		authorLblPanel.add(authorLabel);
-		authorLblPanel.setVisible(false);
-		
-		authorField = new JTextField();
-		authorField.setColumns(30);
-		authorPanel = new JPanel();
-		authorPanel.add(authorField);
-		authorPanel.setVisible(false);
-		
-		licenseTypeLabel = new JLabel("License Type:");
-		licenseTypeLblPanel = new JPanel();
-		licenseTypeLblPanel.add(licenseTypeLabel);
-		licenseTypeLblPanel.setVisible(false);
-		
-		licenseTypeField = new JTextField();
-		licenseTypeField.setColumns(30);
-		licenseTypePanel = new JPanel();
-		licenseTypePanel.add(licenseTypeField);
-		licenseTypePanel.setVisible(false);
-		
-		licenseUrlLabel = new JLabel("License URL:");
-		licenseUrlLblPanel = new JPanel();
-		licenseUrlLblPanel.add(licenseUrlLabel);
-		licenseUrlLblPanel.setVisible(false);
-		
-		licenseURLField = new JTextField();
-		licenseURLField.setColumns(30);
-		licenseUrlPanel = new JPanel();
-		licenseUrlPanel.add(licenseURLField);
-		licenseUrlPanel.setVisible(false);
-		
+		bBtnPanel.add(buildBtn);	
 		inputPanel.add(srcLblPanel);
-		inputPanel.add(sourcePanel);
-		
-		inputPanel.add(pageTitleLblPanel);
-		inputPanel.add(pageTitlePanel);
-		inputPanel.add(bookTitleLblPanel);
-		inputPanel.add(bookTitlePanel);
-		inputPanel.add(bookUrlLblPanel);
-		inputPanel.add(bookUrlPanel);
-		inputPanel.add(authorLblPanel);
-		inputPanel.add(authorPanel);
-		inputPanel.add(licenseTypeLblPanel);
-		inputPanel.add(licenseTypePanel);
-		inputPanel.add(licenseUrlLblPanel);
-		inputPanel.add(licenseUrlPanel);
-		
+		inputPanel.add(sourcePanel);		
+		inputPanel.add(autosaveChk);	
 		inputPanel.add(bBtnPanel);
 
 		JPanel outputPanel = new JPanel();
 		outputPanel.setLayout(new BoxLayout(outputPanel,BoxLayout.Y_AXIS));
-		
 		
 		attrLabel = new JLabel("Attribution");
 		JPanel attrLblPanel = new JPanel();
@@ -194,6 +145,8 @@ public class AttributionBuilder extends JFrame
 		attributionTxt.setEditable(false);
 		JScrollPane scroll = new JScrollPane(attributionTxt);
 		scroll.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
+		JPanel attributionTxtPanel = new JPanel();
+		attributionTxtPanel.add(scroll);
 
 		JPanel copyBtnPanel = new JPanel();
 		JPanel copyPanel = new JPanel();
@@ -209,36 +162,53 @@ public class AttributionBuilder extends JFrame
 		copyPanel.add(copyBtnPanel);
 		copyPanel.add(copyStatusPanel);
 		outputPanel.add(attrLblPanel);
-		outputPanel.add(scroll);
+		outputPanel.add(attributionTxtPanel);
 		outputPanel.add(copyPanel);
+		
+		JMenuBar menuBar = new JMenuBar();
+		//File menu
+		JMenu fileMenu = new JMenu("File");
+		JMenuItem saveAttr = new JMenuItem("Save to Current Project");
+		JMenuItem newProject = new JMenuItem("New Project...");
+		JMenuItem loadProject = new JMenuItem("Load Project...");
+		JMenuItem saveAs = new JMenuItem("Save Project As...");
+		JMenuItem export = new JMenuItem("Export Project As Text File...");
+		JMenuItem close = new JMenuItem("Close Project");
+		JMenuItem exit = new JMenuItem("Exit");
+		saveAttr.addActionListener(listener);
+		saveAs.addActionListener(listener);
+		newProject.addActionListener(listener);
+		loadProject.addActionListener(listener);
+		export.addActionListener(listener);
+		close.addActionListener(listener);
+		exit.addActionListener(listener);
+		fileMenu.add(newProject);
+		fileMenu.add(loadProject);
+		fileMenu.add(saveAs);
+		fileMenu.add(export);
+		fileMenu.add(saveAttr);
+		fileMenu.add(close);
+		fileMenu.add(exit);
+		
+		//Help menu
+		JMenu helpMenu = new JMenu("Help");
+		JMenuItem onlineHelpItem = new JMenuItem("Online Help");
+		onlineHelpItem.addActionListener(listener);
+		helpMenu.add(onlineHelpItem);
+		
+		menuBar.setOpaque(false);
+		menuBar.add(fileMenu);
+		//menuBar.add(helpMenu); //TODO
+		this.add(menuBar, BorderLayout.NORTH);
 		
 		mainPanel.add(inputPanel);
 		mainPanel.add(outputPanel);
-		this.add(mainPanel);
+		
+		tabbedPane.addTab("Attribution", mainPanel);
+		tabbedPane.addTab("Project", projectWindow);
+		this.add(tabbedPane);
 		
 		this.setVisible(true);
-	}
-
-	
-	private class Attribution
-	{
-		public String pageURL;
-    public String pageTitle;
-    public String bookURL;
-    public String bookTitle;
-    public String author;
-    public String licenseURL;
-    public String licenseType;
-    
-    public String getAttribution()
-    {
-    	String output = "\"<a href='" + pageURL + "'>" + pageTitle;
-    	output += "</a>\" from <a href='" + bookURL +"'>" + bookTitle + "</a>";
-    	output += " by " + author + " is licensed under a <a href='" + licenseURL;
-    	output += "'>" + licenseType + "</a>, except where otherwise noted.";
-    	
-    	return output;
-    }
 	}
 	
 	private class Listener implements ActionListener
@@ -257,61 +227,165 @@ public class AttributionBuilder extends JFrame
 			{
 				copyStatusLbl.setText("");
 				String url = source.getText();
-							
+				currentAttribution = new Attribution();
+				
 				try
 				{
-					Document doc = Jsoup.connect(url).get();
-					Attribution attribution = new Attribution();
-					attribution.pageURL = url;
-					Resource type = setType(doc, url);
-					
-					if (type == Resource.PRESSBOOKS || isPressbooks(doc))
-					{
-						if (manualInputFieldsVisible)
+					Connection connection = Jsoup.connect(url)
+							.userAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.21 (KHTML, like Gecko) Chrome/19.0.1042.0 Safari/535.21")
+							.timeout(10000);
+					Connection.Response response = null;			
+					response = connection.execute();
+					int statusCode = response.statusCode();
+					if (statusCode == 200)
+					{					
+						Document doc = connection.get();
+						
+						currentAttribution.pageURL = url;
+						Resource type = setType(doc, url);
+						
+						if (type == Resource.PRESSBOOKS || isPressbooks(doc))
+						{						
+							buildPressbooksAttribution(doc, currentAttribution);
+						}
+						else if (type == Resource.OPEN_STAX)
 						{
-							manualInputFieldsVisible = toggleVisibility();
+							
+							buildOpenStaxAttribution(doc, currentAttribution);
+						}
+						else
+						{
+							
+							buildManualAttribution(currentAttribution);
+						}	
+						
+						if (currentProject != null && autosave)
+						{
+							saveAttributionToCurrentProject();
+							
+							if (projectWindow != null)
+							{
+								projectWindow.updateAttributionTable(currentProject);
+							}
 						}
 						
-						buildPressbooksAttribution(doc, attribution);
-					}
-					else if (type == Resource.OPEN_STAX)
-					{
-						if (manualInputFieldsVisible)
-						{
-							manualInputFieldsVisible = toggleVisibility();
-						}
-						
-						buildOpenStaxAttribution(doc, attribution);
 					}
 					else
 					{
-						if (!manualInputFieldsVisible)
-						{
-							manualInputFieldsVisible = toggleVisibility();
-						}
-						
+						Attribution attribution = new Attribution();
+						attribution.pageURL = url;
 						buildManualAttribution(attribution);
-					}					
-				}
-				catch(IOException ex)
-				{
-					if (!manualInputFieldsVisible)
-					{
-						manualInputFieldsVisible = toggleVisibility();
 					}
-					Attribution attribution = new Attribution();
-					attribution.pageURL = url;
-
-					buildManualAttribution(attribution);
-					ex.printStackTrace();
-				}			
+				}
+				catch (UnknownHostException | IllegalArgumentException ex)
+				{					
+					JOptionPane.showMessageDialog(frame, "Invalid URL");
+				}
+				catch(Exception ex)
+				{
+					ex.printStackTrace();				
+				}
 			}
 			else if (ev.getSource() == copyBtn)
 			{
 				Toolkit.getDefaultToolkit().getSystemClipboard()
 					.setContents(new StringSelection(attributionTxt.getText()), null);
 				copyStatusLbl.setText("Copied!");				
-			}		
+			}
+			else if (ev.getActionCommand().equals("Load Project..."))
+			{
+				try
+				{
+					File currentDir = new File("./projects");
+					JFileChooser fileChooser = new JFileChooser(currentDir);
+					FileNameExtensionFilter filter = new FileNameExtensionFilter("AttributionBuilder Project Files",
+			        "abp");
+					fileChooser.setFileFilter(filter);
+					if (fileChooser.showOpenDialog(frame) == JFileChooser.APPROVE_OPTION)
+					{
+						File f = fileChooser.getSelectedFile();
+						
+						if (currentProject != null)
+						{
+							currentProject.save();
+						}
+											
+						currentProject = new Project(f.toString());
+	
+						autosaveChk.setText(autosaveChk.getText().substring(0, autosaveChk.getText().indexOf(':') + 1) + " " + currentProject.getName());
+						autosaveChk.setVisible(true);
+						if (projectWindow != null)
+						{
+							projectWindow.updateAttributionTable(currentProject);
+						}
+					}
+				}
+				catch (HeadlessException ex)
+				{
+					ex.printStackTrace();
+				}				
+			}
+			else if (ev.getActionCommand().equals("Save to Current Project"))
+			{				
+				saveAttributionToCurrentProject();
+				if (projectWindow != null)
+				{
+					projectWindow.updateAttributionTable(currentProject);
+				}
+			}
+			else if (ev.getActionCommand().equals("New Project..."))
+			{
+				createNewProject();
+				if (currentProject != null)
+				{
+					autosaveChk.setText(autosaveChk.getText().substring(0, autosaveChk.getText().indexOf(':') + 1) +
+							" " + currentProject.getName());
+					autosaveChk.setVisible(true);
+				}
+					
+				if (projectWindow != null)
+				{
+					projectWindow.updateAttributionTable(currentProject);
+				}
+			}
+			else if (ev.getActionCommand().equals("Save Project As..."))
+			{
+				if (currentProject == null)
+				{
+					JOptionPane.showMessageDialog(frame, "No project loaded");
+					return;
+				}
+				createNewProject();
+				if (currentProject != null)
+				{
+					autosaveChk.setText(autosaveChk.getText().substring(0, autosaveChk.getText().indexOf(':')) +
+							"\n" + currentProject.getName());
+					autosaveChk.setVisible(true);
+				}
+					
+				if (projectWindow != null)
+				{
+					projectWindow.updateAttributionTable(currentProject);
+				}
+			}
+			else if (ev.getActionCommand().equals("Close Project"))
+			{
+				if (currentProject != null)
+				{
+					currentProject.save();
+					currentProject = null;
+					autosaveChk.setVisible(false);
+					projectWindow.updateAttributionTable(currentProject);
+				}
+			}
+			else if (ev.getActionCommand().equals("Export Project As Text File..."))
+			{
+				exportProjectToText();
+			}
+			else if (ev.getActionCommand().equals("Exit"))
+			{
+				frame.dispatchEvent(new WindowEvent(frame, WindowEvent.WINDOW_CLOSING));
+			}
 		}
 		
 		private Resource setType(Document doc, String url)
@@ -345,35 +419,24 @@ public class AttributionBuilder extends JFrame
 			return false;		
 		}
 		
-		private boolean toggleVisibility()
+		private boolean saveAttributionToCurrentProject()
 		{
-			pageTitleLblPanel.setVisible(!pageTitleLblPanel.isVisible());
-			pageTitlePanel.setVisible(!pageTitlePanel.isVisible());
-			bookTitleLblPanel.setVisible(!bookTitleLblPanel.isVisible());
-			bookTitlePanel.setVisible(!bookTitlePanel.isVisible());
-			bookUrlLblPanel.setVisible(!bookUrlLblPanel.isVisible());
-			bookUrlPanel.setVisible(!bookUrlPanel.isVisible());
-			authorLblPanel.setVisible(!authorLblPanel.isVisible());
-			authorPanel.setVisible(!authorPanel.isVisible());
-			licenseTypeLblPanel.setVisible(!licenseTypeLblPanel.isVisible());
-			licenseTypePanel.setVisible(!licenseTypePanel.isVisible());
-			licenseUrlLblPanel.setVisible(!licenseUrlLblPanel.isVisible());
-			licenseUrlPanel.setVisible(!licenseUrlPanel.isVisible());
+			if (currentAttribution == null || currentAttribution.toString() == null)
+			{
+				JOptionPane.showMessageDialog(frame, "Please build a valid attribution");
+				return false;
+			}
+			if (currentProject == null)
+			{
+				JOptionPane.showMessageDialog(frame, "No currently active project");
+				return false;
+			}
 			
-			if (pageTitleLblPanel.isVisible())
-			{
-				frame.setSize(400, 654); //width and height in pixels
-				
-			}
-			else
-			{
-				frame.setSize(400, 400);
-				
-			}
-						
-			return pageTitleLblPanel.isVisible();
+			String tag = JOptionPane.showInputDialog("Please enter a tag name to identify this attribution");
+			currentProject.addAttribution(tag, currentAttribution);
+			currentProject.save();
+			return true;
 		}
-
 		
 		private void buildPressbooksAttribution(Document doc, Attribution attribution)
 		{
@@ -409,7 +472,7 @@ public class AttributionBuilder extends JFrame
 					
 			}
 			
-			attributionTxt.setText(attribution.getAttribution());
+			attributionTxt.setText(attribution.toString());
     
 		}
 		
@@ -428,31 +491,140 @@ public class AttributionBuilder extends JFrame
 			attribution.licenseType = licenseEl.text();
 			attribution.licenseURL = licenseEl.attr("href");
 			
-			attributionTxt.setText(attribution.getAttribution());
+			attributionTxt.setText(attribution.toString());
 
 		}
 		
 		private void buildManualAttribution(Attribution attribution)
 		{
-			attribution.pageTitle = pageTitleField.getText();
-			attribution.bookTitle = bookTitleField.getText();
-			attribution.bookURL = bookURLField.getText();
-			attribution.author = authorField.getText();
-			attribution.licenseType = licenseTypeField.getText();
-			attribution.licenseURL = licenseURLField.getText();
-			
-			if (!bookTitleField.getText().isEmpty() && !bookURLField.getText().isEmpty() && !authorField.getText().isEmpty() &&
-				!pageTitleField.getText().isEmpty() && !licenseTypeField.getText().isEmpty() && !licenseURLField.getText().isEmpty())
-			{
-				attributionTxt.setText(attribution.getAttribution());
-			}
-			else
-			{
-				attributionTxt.setText("Please fill out all the fields above.");;
-			}
+				int res = JOptionPane.OK_OPTION;
+				Attribution temp = null;
+				
+				while (temp == null && res == JOptionPane.OK_OPTION)
+				{
+					EditAttributionPanel editPanel = new EditAttributionPanel(attribution);
+					res = JOptionPane.showConfirmDialog(frame, editPanel, 
+							"Edit Attribution", 
+							JOptionPane.OK_CANCEL_OPTION);
+					if (res == JOptionPane.OK_OPTION)
+					{
+						temp = editPanel.getAttribution();
+						
+						if (temp != null)
+						{
+							frame.currentAttribution = temp;
+							attributionTxt.setText(temp.toString());
+						}
+						else
+						{
+							JOptionPane.showMessageDialog(frame, "Please complete all fields");
+						}					
+					}
+				}
 		}		
 	}
 	
+	private void exportProjectToText()
+	{
+		if (currentProject == null)
+		{
+			JOptionPane.showMessageDialog(this, "No project loaded");
+			return;
+		}
+		
+		JFileChooser chooser = new JFileChooser();
+		FileNameExtensionFilter filter = new FileNameExtensionFilter("Text Files",
+        "txt");
+		chooser.setFileFilter(filter);
+		int retVal = chooser.showSaveDialog(this);
+		if (retVal == JFileChooser.APPROVE_OPTION)
+		{
+			File path = chooser.getSelectedFile();
+			String pathStr = path.toString();
+			int extensionIdx = pathStr.lastIndexOf('.');
+			if (extensionIdx < 0 || !pathStr.substring(extensionIdx).equals(".txt"))
+			{
+				pathStr += ".txt";
+				path = new File(pathStr);
+			}
+			TreeMap<String, Attribution> attributions = currentProject.getAttributions();
+			try
+			{
+				FileWriter fw = new FileWriter(path);
+				PrintWriter pw = new PrintWriter(fw);
+				
+				pw.println(currentProject.getName());
+				for (int i = 0; i < currentProject.getName().length(); i++)
+				{
+					pw.print("=");
+				}
+				pw.println();
+				pw.println();
+				
+				for (Entry<String, Attribution> entry : attributions.entrySet())
+				{
+					String keyStr = entry.getKey();
+					pw.println(keyStr);
+					for (int i = 0; i < keyStr.length(); i++)
+					{
+						pw.print("-");
+					}
+					pw.println();
+					pw.println(entry.getValue().toString());
+					pw.println();
+				}
+				
+				pw.close();
+			}
+			catch(IOException ex)
+			{
+				ex.printStackTrace();
+			}			
+		}
+	}
+	
+	private void createNewProject()
+	{
+		if (currentProject != null)
+		{
+			currentProject.save();
+		}
+		
+		File dir = new File("./projects");
+		if (!dir.exists())
+		{
+			dir.mkdir();
+		}
+		
+		FileNameExtensionFilter filter = new FileNameExtensionFilter("AttributionBuilder Project Files",
+        "abp");
+		JFileChooser chooser = new JFileChooser();
+		chooser.setFileFilter(filter);
+		chooser.setCurrentDirectory(dir);
+		int retVal = chooser.showSaveDialog(this);
+		if (retVal == JFileChooser.APPROVE_OPTION)
+		{
+			File path = chooser.getSelectedFile();
+			String pathStr = path.toString();
+			int extensionIdx = pathStr.lastIndexOf('.');
+			if (extensionIdx < 0 || !pathStr.substring(extensionIdx).equals(".abp"))
+			{
+				pathStr += ".abp";
+				path = new File(pathStr);
+			}
+			try
+			{
+				path.createNewFile();
+			}
+			catch (IOException ex)
+			{
+				ex.printStackTrace();
+			}
+			
+			currentProject = new Project(path.toString());
+			currentProject.save();
+		}
+	}
 
 	public static void main(String[] args)
 	{
